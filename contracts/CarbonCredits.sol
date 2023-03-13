@@ -7,7 +7,7 @@ contract CarbonCredits is ERC20 {
 
     uint public _initialSupply;
     uint public _supplyUpdate;
-    mapping(address => uint256) public _initialBalance;
+    mapping(address => uint256) public _annualOffset;
     mapping(address => uint256) public _lastUpdate;
     address carbonPurchaser;
 
@@ -20,7 +20,7 @@ contract CarbonCredits is ERC20 {
         uint preTotal = totalSupply();
         _initialSupply = preTotal + msg.value;
         _supplyUpdate = block.timestamp;
-        _initialBalance[msg.sender] += msg.value;
+        _annualOffset[msg.sender] += msg.value;
         _lastUpdate[msg.sender] = block.timestamp;
         emit Transfer(address(0), msg.sender, msg.value);
         _afterTokenTransfer(address(0), msg.sender, msg.value);
@@ -33,9 +33,9 @@ contract CarbonCredits is ERC20 {
     }
 
     function balanceOf(address account) public view virtual override returns (uint256) {
-        if (_initialBalance[account] <= 0) return 0;
+        if (_annualOffset[account] <= 0) return 0;
         if (block.timestamp - _lastUpdate[account] > 365 days) return 0;
-        uint remaining = _initialBalance[account] - ((_initialBalance[account] / 365 days) * (block.timestamp - _lastUpdate[account]));
+        uint remaining = _annualOffset[account] - ((_annualOffset[account] / 365 days) * (block.timestamp - _lastUpdate[account]));
         return remaining;
     }
 
@@ -45,10 +45,10 @@ contract CarbonCredits is ERC20 {
         _beforeTokenTransfer(from, to, amount);
         uint256 fromBalance = balanceOf(from);
         require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
-        _initialBalance[from] = fromBalance - amount;
+        _annualOffset[from] = fromBalance - amount;
         _lastUpdate[from] = block.timestamp;
         uint256 toBalance = balanceOf(to);
-        _initialBalance[to] = toBalance + amount;
+        _annualOffset[to] = toBalance + amount;
         _lastUpdate[to] = block.timestamp;
         emit Transfer(from, to, amount);
         _afterTokenTransfer(from, to, amount);
